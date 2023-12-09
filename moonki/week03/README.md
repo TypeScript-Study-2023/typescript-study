@@ -50,5 +50,132 @@ const filtered = [1,2,3,4,5].filter((value) => value % 2);
 > `const filtered = ['1',2,'3',4,'5'].filter((value) => typeof value === 'string');`  
 > 의 경우 `typeof filtered === (string \ number)[]`와 같이 나오는데,,, 이유는?!
 
-https://www.inflearn.com/course/lecture?courseSlug=%ED%83%80%EC%9E%85%EC%8A%A4%ED%81%AC%EB%A6%BD%ED%8A%B8-%EC%98%AC%EC%9D%B8%EC%9B%90-1&unitId=122325  
-9:00ㅇ ㅣ어보기
+```tsx
+const predicate = (value: string | number): value is string =>
+  typeof value === "string";
+const filtered = ["1", 2, "3", 4, "5"].filter(predicate); // ['1','3','5'] string[]
+```
+
+### forEach 타입 직접 만들기
+
+```tsx
+interface Arr<T>{ // Array는 이미 만들어져있어서 안겹치게
+  forEach(callback: (item: T, index: number) => void): void;
+}
+
+const a: Arr<number> = [1,2,3];
+a.forEach((item, index) => {
+  console.log(item, index);
+  item.toFixed(1);
+});
+a.forEach((item) => {
+  console.log(item);
+  return '3';
+}
+
+const b: Arr<string> = ['1','2','3'];
+b.forEach((item, index) => {
+  console.log(item, index);
+  item.charAt(3);
+});
+b.forEach((item) => {
+  console.log(item);
+  return '3';
+}
+```
+
+### map 타입 직접 만들기
+
+```tsx
+interface Arr<T> {
+  map<S>(callback: (v: T) => S): S[];
+}
+
+const a: Arr<number> = [1, 2, 3];
+
+const b = a.map((v, i) => v + 1);
+const c = a.map((v, i) => v.toString());
+const d = a.map((v, i) => v % 2 === 0);
+
+const e: Arr<string> = ["1", "2", "3"];
+const f = e.map((v) => +v);
+```
+
+### filter 타입 직접 만들기
+
+```tsx
+interface Arr<T> {
+  filter<S extends T>(callback: (v: T) => v is S): S[];
+
+  filter(): void;
+  filter(callback: () => void): void;
+  filter(callback: (v: T) => void): T[];
+  filter<S>(callback: (v: T) => v is S): S[];
+  filter<S extends T>(callback: (v: T) => v is S): S[];
+}
+
+const a: Arr<number> = [1, 2, 3];
+
+const b = a.filter((v): v is number => v % 2 === 0); // [2] number[]
+
+const c: Arr<number | string> = [1, "2", 3, "4", 5];
+const d = c.filter((v): v is string => typeof v === "string"); //['2','4'] string[]
+```
+
+### 공변성과 반공변성
+
+함수간 대입 가능한지 불가능한지?!
+
+```tsx
+function a(x: string): number {
+  return 0;
+}
+type B = (x: string) => number | string;
+let b: B = a;
+// return값이 더 넓은 함수로 대입 가능
+
+function a(x: string): number | string {
+  // (x: string) => string
+  return 0;
+}
+type B = (x: string) => number;
+let b: B = a;
+// 불가능
+
+function a(x: string | number): number {
+  return 0;
+}
+type B = (x: string) => number;
+let b: B = a;
+// 매개변수는 왜 대입?!
+// -> 매개변수는 (x: string | number)를 하나로 보고
+// 넓은타입 -> 좁은타입 으로 대입 가능
+
+function a(x: string): number {
+  return 0;
+}
+type B = (x: string | number) => number;
+let b: B = a;
+// 얘는 매개변수가 좁은타입 -> 넓은타입이라 대입 불가능
+```
+
+### 하나에는 걸리겠지(오버로딩)
+
+여러 함수의 선언  
+죽었다 꺠어나도 함수를 하나의 선언으로 정의하기 힘들 때 여러 정의
+
+```tsx
+function add(x: number, y: number): number;
+function add(x: string, y: string): string;
+function add(x: any, y: any) {
+  return x + y;
+}
+
+interface Add {
+  (x: number, y: number): number;
+  (x: string, y: string): string;
+}
+const add: Add = (x: any, y: any) => x + y;
+```
+
+### 타입스크립트는 건망증이 심하다(+에러 처리법)
